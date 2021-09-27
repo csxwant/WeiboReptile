@@ -1,9 +1,12 @@
+import time
+
 import requests
 from static import tools
 from time import sleep
 import os.path
 import threading
 import random
+from get_weibo_content import work_fun
 
 root_path = r'E:\weibo'
 # 存储微博用户ID（节点）文件
@@ -135,23 +138,23 @@ def reptile_user_fans(user_fans_url, ego_id):
         f_user2user = open(user2user_edges_path_2, 'a+', encoding='utf-8')
         f_user_feature = open(userNodes_features_2, 'a+', encoding='utf-8')
         # 计数器，每个用户只爬取4-6个
-        num = 1
+        current_num = 1
         ran_num = random.randint(4, 6)
         for card in cards:
             try:
-                card_group = card['card_group']
-                for card_group_info in card_group:
+                card_groups = card['card_group']
+                for card_group_info in card_groups:
                     try:
                         if card_group_info['card_type'] != 10:
                             continue
-                        user_info = card_group_info['user']
+                        user_fans_info = card_group_info['user']
                         # 该用户关注的用户的属性
-                        user_name = user_info['screen_name']  # 用户名
-                        user_id = user_info['id']  # 用户id
+                        user_name = user_fans_info['screen_name']  # 用户名
+                        user_id = user_fans_info['id']  # 用户id
                         if user_id <= 10:
                             print(user_id)
-                        fans_count = user_info['followers_count']  # 粉丝数量 "follow_count"为关注数
-                        if user_info['gender'] == 'f':
+                        fans_count = user_fans_info['followers_count']  # 粉丝数量 "follow_count"为关注数
+                        if user_fans_info['gender'] == 'f':
                             sex = '女'
                         else:
                             sex = '男'
@@ -168,19 +171,18 @@ def reptile_user_fans(user_fans_url, ego_id):
                         f_user_feature.write(str(info) + '\n')
                         # 将用户与粉丝之间的关系边写入文件 ，形式为 a--关注-->b
                         f_user2user.write(str(user_id) + ' ' + str(ego_id) + '\n')
-                        num += 1
-                        if num > ran_num:
+                        current_num += 1
+                        if current_num > ran_num:
                             break
                     except Exception as e162:
-                        print('P163:' + str(e162.args) + ',' + str(card_group_info))
-                        print(card_group)
+                        print('P163:' + str(e162.args))
             except Exception as e6:
                 print('e6:' + str(e6.args))
-            if num > ran_num:
+            if current_num > ran_num:
                 break
         # print("%s粉丝信息爬取完毕..." % ego_id)
-        if num < 4:
-            print("%s粉丝只能爬取%d位" % (ego_id, num))
+        if current_num < 4:
+            print("%s粉丝只能爬取%d位" % (ego_id, current_num))
     except Exception as e5:
         print('e5:' + str(e5.args))
     finally:
@@ -194,39 +196,6 @@ def reptile_user_fans(user_fans_url, ego_id):
 
 def reptile_user_info(ego_id):
     print()
-
-
-def get_user_sex(user_id):
-    """
-    获取用户性别信息
-    :param user_id:
-    :return:
-    """
-    uid_str = "230283" + str(user_id)
-    # 爬取的网址前缀
-    user_sex_url = "https://m.weibo.cn/api/container/getIndex?containerid={}_-_INFO&" \
-                   "title=%E5%9F%BA%E6%9C%AC%E8%B5%84%E6%96%99&luicode=10000011&lfid={}" \
-                   "&featurecode=10000326".format(uid_str, uid_str)
-    # 必要的参数数据
-    parameter_data = {
-        "containerid": "{}_-_INFO".format(uid_str),
-        "title": "基本资料",
-        "luicode": 10000011,
-        "lfid": int(uid_str),
-        "featurecode": 10000326
-    }
-    sex = '未知'
-    try:
-        res = requests.get(user_sex_url, headers=tools.get_random_ua(), data=parameter_data)
-        data = res.json()['data']['cards'][1]
-        if data['card_group'][0]['desc'] == '个人信息':
-            sex = data['card_group'][1]['item_content']
-        else:
-            sex = "男"
-    except Exception as e2:
-        print('e2 error:' + str(e2.args))
-    finally:
-        return sex
 
 
 # 线程计数器
@@ -285,12 +254,13 @@ def n_thread_reptile(followers_list, fans_list):
 
 
 if __name__ == '__main__':
+    time_start = time.time()
     modify_file()
     # 爬取3186648257的关注圈与粉丝圈
     init_fans_list = get_specific_user_fans('3186648257')
     init_followers_list = get_specific_user_followers('3186648257')
     sec_followers_list, sec_fans_list = n_thread_reptile(init_followers_list, init_fans_list)
-    for i in range(1, 5):
+    for i in range(1, 10):
         print('第%d次循环爬取开始' % i)
         sec_followers_list, sec_fans_list = n_thread_reptile(sec_followers_list, sec_fans_list)
     # 合并用户列表
@@ -307,3 +277,6 @@ if __name__ == '__main__':
         f_user_node.close()
     except Exception as e274:
         print('e274:' + str(e274.args))
+    work_fun()
+    time_end = time.time()
+    print('\n totally cost', time_end - time_start)  # 显示程序运行时间
