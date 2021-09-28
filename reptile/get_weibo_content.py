@@ -1,14 +1,11 @@
 import requests
-import urllib
 import time
-import datetime
 import threading
 from time import sleep
-import re
 from random import randint
 import os
 from urllib.parse import urlencode
-from pyquery import PyQuery as pq
+from pyquery import PyQuery as Pq
 from static import tools
 from get_weibo_comment import get_weibo_comment
 
@@ -105,20 +102,18 @@ def analysis(response_json, user_id, thread_id, weibo_id_list, f_weibo_comment):
                 data = {
                     'weibo_id': weibo_id,
                     '发表时间': cr_time,
-                    'text': pq(init_wb.get("text")).text(),  # 仅提取内容中的文本
+                    'text': Pq(init_wb.get("text")).text(),  # 仅提取内容中的文本
                     '点赞': init_wb.get('attitudes_count'),   # 点赞数
                     '评论': init_wb.get('comments_count'),    # 评论数
                     # 'reposts': init_wb.get('reposts_count')     # 转发数
                 }
-                # 初步获取博文内容，用以判断为转发还是原创
-                text = pq(init_wb.get("text")).text()
                 # 代表是转发的微博
                 if init_wb.get('retweeted_status') is not None:
                     trans_weibo = init_wb.get('retweeted_status')
                     trans_weibo_id = trans_weibo.get('id')
                     trans_weibo_created_at = trans_format(trans_weibo.get('created_at'))
                     trans_weibo_content = get_specific_weibo(trans_weibo_id)
-                    trans_weibo_content = pq(trans_weibo_content).text()
+                    trans_weibo_content = Pq(trans_weibo_content).text()
                     data['text'] = trans_weibo_content
                     data['发表时间'] = trans_weibo_created_at
                     # 博文ID暂存列表
